@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>List Categories and Products</title>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script> <!-- axios kütüphanesini dahil etme -->
+<style>
+  body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      padding: 20px;
+  }
+
+  h2 {
+      text-align: center;
+      margin-bottom: 20px;
+  }
+
+  .category-container {
+      background-color: #ffffff;
+      padding: 15px;
+      margin-bottom: 15px;
+      border: 1px solid #cccccc;
+      border-radius: 5px;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .category-item {
+      margin-bottom: 10px;
+  }
+
+  .category-label {
+      font-weight: bold;
+      color: #333333;
+  }
+
+  .category-buttons {
+      margin-top: 10px;
+  }
+
+  .btn {
+      padding: 8px 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+  }
+
+  .btn:hover {
+      background-color: #45a049;
+  }
+
+  .update-form {
+      background-color: #ffffff;
+      padding: 15px;
+      margin-top: 15px;
+      border: 1px solid #cccccc;
+      border-radius: 5px;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+      display: none;
+  }
+
+  .create-form {
+      background-color: #ffffff;
+      padding: 15px;
+      margin-top: 20px;
+      border: 1px solid #cccccc;
+      border-radius: 5px;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .create-form h3,
+  .update-form h3 {
+      margin-top: 0;
+  }
+
+  input[type="text"] {
+      width: calc(100% - 20px);
+      padding: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+  }
+</style>
+</head>
+<body>
+
+<h2>List Categories and Products</h2>
+
+<div id="categoriesContainer">
+    <!-- Kategoriler buraya dinamik olarak eklenecek -->
+</div>
+
+<!-- Güncelleme formu -->
+<div id="updateForm" class="update-form">
+    <h3>Update Category</h3>
+    <label for="updateName">Name:</label><br>
+    <input type="text" id="updateName"><br>
+    <label for="updateDescription">Description:</label><br>
+    <input type="text" id="updateDescription"><br><br>
+    <button onclick="submitUpdate()">Submit Update</button>
+    <button onclick="cancelUpdate()">Cancel</button>
+</div>
+
+<!-- Yeni kategori oluşturma formu -->
+<div id="createForm" class="create-form">
+    <h3>Create Category</h3>
+    <label for="createName">Name:</label><br>
+    <input type="text" id="createName"><br>
+    <label for="createDescription">Description:</label><br>
+    <input type="text" id="createDescription"><br><br>
+    <button onclick="submitCreate()">Create</button>
+</div>
+
+<script>
+async function fetchCategories() {
+    try {
+        const response = await axios.get('http://localhost:5050/categories');
+        
+        const categories = response.data;
+        
+        categories.forEach(category => {
+            // Her bir kategori için HTML içeriği oluştur
+            let categoryHtml = `
+                <div id="category${category._id}" class="category-container">
+                    <div class="category-item">
+                        <span class="category-label">Category ID:</span> ${category._id}
+                    </div>
+                    <div class="category-item">
+                        <span class="category-label">Category Name:</span> ${category.name}
+                    </div>
+                    <div class="category-item">
+                        <span class="category-label">Description:</span> ${category.description}
+                    </div>
+                    <div class="category-buttons">
+                        <button class="btn" onclick="deleteCategory('${category._id}')">Delete</button>
+                        <button class="btn" onclick="showUpdateForm('${category._id}', '${category.name}', '${category.description}')">Update</button>
+                    </div>
+                    <hr>
+                </div>
+            `;
+            
+            // categoriesContainer içine HTML'i ekleyin
+            document.getElementById('categoriesContainer').innerHTML += categoryHtml;
+        });
+        
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        document.getElementById('categoriesContainer').innerHTML = '<p>Error fetching data.</p>';
+    }
+}
+
+// Sayfa yüklendiğinde kategorileri çek
+fetchCategories();
+
+// Kategori silme DELETE isteği yapma
+async function deleteCategory(categoryId) {
+    try {
+        const response = await axios.delete(`http://localhost:5050/categories/${categoryId}`);
+        console.log('Category Deleted:', response.data);
+        // İsteğin sonucunu burada işleyebilirsiniz, örneğin kategori silindi mesajı gösterebilirsiniz.
+        // Silinen kategoriyi sayfadan kaldırma (isteğe bağlı)
+        document.getElementById(`category${categoryId}`).remove();
+    } catch (error) {
+        console.error('Error deleting category:', error);
+        alert('Error deleting category. Check console for details.');
+    }
+}
+
+// Güncelleme formunu göster
+function showUpdateForm(categoryId, categoryName, categoryDescription) {
+    // Formu görünür yap
+    document.getElementById('updateForm').style.display = 'block';
+    
+    // Form alanlarını doldur
+    document.getElementById('updateName').value = categoryName;
+    document.getElementById('updateDescription').value = categoryDescription;
+    
+    // Submit fonksiyonuna categoryId'yi set et
+    submitUpdate.categoryId = categoryId;
+}
+
+// Güncelleme formunu kapat
+function cancelUpdate() {
+    document.getElementById('updateForm').style.display = 'none';
+}
+
+// Kategori güncelleme PUT (update) isteği yapma
+async function submitUpdate() {
+    try {
+        const updatedCategory = {
+            name: document.getElementById('updateName').value,
+            description: document.getElementById('updateDescription').value
+        };
+        
+        const categoryId = submitUpdate.categoryId;
+        const response = await axios.put(`http://localhost:5050/categories/${categoryId}`, updatedCategory);
+        console.log('Category Updated:', response.data);
+        
+        // İsteğin sonucunu burada işleyebilirsiniz, örneğin güncelleme işlemi başarılı mesajı gösterebilirsiniz.
+        
+        // Kategori bilgilerini güncelle (isteğe bağlı)
+        const updatedCategoryHtml = `
+            <div id="category${categoryId}" class="category-container">
+                <div class="category-item">
+                    <span class="category-label">Category ID:</span> ${categoryId}
+                </div>
+                <div class="category-item">
+                    <span class="category-label">Category Name:</span> ${updatedCategory.name}
+                </div>
+                <div class="category-item">
+                    <span class="category-label">Description:</span> ${updatedCategory.description}
+                </div>
+                <div class="category-buttons">
+                    <button class="btn" onclick="deleteCategory('${categoryId}')">Delete</button>
+                    <button class="btn" onclick="showUpdateForm('${categoryId}', '${updatedCategory.name}', '${updatedCategory.description}')">Update</button>
+                </div>
+                <hr>
+            </div>
+        `;
+        
+        const oldCategoryElement = document.getElementById(`category${categoryId}`);
+        oldCategoryElement.insertAdjacentHTML('afterend', updatedCategoryHtml);
+        oldCategoryElement.remove();
+        
+        // Güncelleme formunu kapat
+        cancelUpdate();
+        
+    } catch (error) {
+        console.error('Error updating category:', error);
+        alert('Error updating category. Check console for details.');
+    }
+}
+
+// Yeni kategori oluşturma POST isteği yapma
+async function submitCreate() {
+    try {
+        const newCategory = {
+            name: document.getElementById('createName').value,
+            description: document.getElementById('createDescription').value
+        };
+        
+        const response = await axios.post('http://localhost:5050/categories', newCategory);
+        console.log('New Category Created:', response.data);
+        
+        // İsteğin sonucunu burada işleyebilirsiniz, örneğin yeni kategori oluşturuldu mesajı gösterebilirsiniz.
+        
+        // Yeni kategori HTML'i oluştur ve ekranın en üstüne ekle
+        const createdCategoryHtml = `
+            <div id="category${response.data._id}" class="category-container">
+                <div class="category-item">
+                    <span class="category-label">Category ID:</span> ${response.data._id}
+                </div>
+                <div class="category-item">
+                    <span class="category-label">Category Name:</span> ${response.data.name}
+                </div>
+                <div class="category-item">
+                    <span class="category-label">Description:</span> ${response.data.description}
+                </div>
+                <div class="category-buttons">
+                    <button class="btn" onclick="deleteCategory('${response.data._id}')">Delete</button>
+                    <button class="btn" onclick="showUpdateForm('${response.data._id}', '${response.data.name}', '${response.data.description}')">Update</button>
+                </div>
+                <hr>
+            </div>
+        `;
+        
+        document.getElementById('categoriesContainer').insertAdjacentHTML('afterbegin', createdCategoryHtml);
+        
+    } catch (error) {
+        console.error('Error creating category:', error);
+        alert('Error creating category. Check console for details.');
+    }
+}
+</script>
+</body>
+</html>
