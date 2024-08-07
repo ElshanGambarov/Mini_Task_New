@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Category Page</title>
+    <style>
+        /* General container styling */
+        .categories-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        /* Category container styling */
+        .category-container {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            width: 22%; /* Adjusted to fit 4 per line */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
+
+        /* Category item styling */
+        .category-item {
+            margin-bottom: 10px;
+        }
+
+        .category-label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* Buttons styling */
+        .category-buttons {
+            margin-top: 10px;
+        }
+
+        .btn {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            margin-right: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+        }
+
+        hr {
+            border: 0;
+            border-top: 1px solid #ddd;
+            margin: 20px 0;
+        }
+
+        img {
+            width: 100%;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Products</h1>
+    <div id="categoriesContainer" class="categories-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        async function fetchCategories() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await axios.get('http://localhost:5050/categories', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const categories = response.data;
+                categories.forEach(category => {
+                    let categoryHtml = `
+                        <div id="category${category._id}" class="category-container">
+                            <div class="category-item">
+                                <span class="category-label">Title:</span> ${category.title}
+                            </div>
+                            <div class="category-item">
+                                <span class="category-label">Price:</span> ${category.price}
+                            </div>
+                            <div class="category-item">
+                                <span class="category-label">Description:</span> ${category.description}
+                            </div>
+                            <div class="category-item">
+                                <span class="category-label">Categories:</span> ${category.categories}
+                            </div>
+                            <div class="category-item">
+                                <img src="${category.img}" alt="Category Image">
+                            </div>
+                            <hr>
+                        </div>`;
+                    document.getElementById('categoriesContainer').insertAdjacentHTML('beforeend', categoryHtml);
+                });
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                document.getElementById('categoriesContainer').innerHTML = '<p>Error fetching data.</p>';
+            }
+        }
+
+        // Fetch categories when the page loads
+        fetchCategories();
+    </script>
+</body>
+</html>

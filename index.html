@@ -4,12 +4,31 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>List Categories and Products</title>
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script> <!-- axios kütüphanesini dahil etme -->
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <style>
   body {
       font-family: Arial, sans-serif;
       background-color: #f0f0f0;
       padding: 20px;
+  }
+
+  nav {
+      background-color: #333;
+      overflow: hidden;
+  }
+
+  nav a {
+      float: left;
+      display: block;
+      color: #f2f2f2;
+      text-align: center;
+      padding: 14px 16px;
+      text-decoration: none;
+  }
+
+  nav a:hover {
+      background-color: #ddd;
+      color: black;
   }
 
   h2 {
@@ -53,27 +72,15 @@
       background-color: #45a049;
   }
 
-  .update-form {
+  .update-form, .create-form {
       background-color: #ffffff;
       padding: 15px;
-      margin-top: 15px;
-      border: 1px solid #cccccc;
-      border-radius: 5px;
-      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-      display: none;
-  }
-
-  .create-form {
-      background-color: #ffffff;
-      padding: 15px;
-      margin-top: 20px;
       border: 1px solid #cccccc;
       border-radius: 5px;
       box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
   }
 
-  .create-form h3,
-  .update-form h3 {
+  .update-form h3, .create-form h3 {
       margin-top: 0;
   }
 
@@ -85,85 +92,132 @@
       border-radius: 4px;
       box-sizing: border-box;
   }
+
+  .form-container {
+      margin-bottom: 20px;
+  }
 </style>
 </head>
 <body>
 
+<nav>
+  <a href="index.html">Main</a>
+  <a href="products.html">Products</a>
+  <a href="#" onclick="logout()">Logout</a>
+</nav>
+
 <h2>List Categories and Products</h2>
+
+<!-- Yeni kategori oluşturma formu -->
+<div id="createForm" class="create-form form-container">
+    <h3>Create Category</h3>
+    <label for="createTitle">Title:</label><br>
+    <input type="text" id="createTitle" name="title"><br>
+    <label for="createPrice">Price:</label><br>
+    <input type="text" id="createPrice" name="price"><br>
+    <label for="createDescription">Description:</label><br>
+    <input type="text" id="createDescription" name="description"><br>
+    <label for="createCategories">Categories:</label><br>
+    <input type="text" id="createCategories" name="categories"><br>
+    <label for="createImg">Image URL:</label><br>
+    <input type="text" id="createImg" name="img"><br><br>
+    <button onclick="submitCreate(event)">Create</button>
+</div>
 
 <div id="categoriesContainer">
     <!-- Kategoriler buraya dinamik olarak eklenecek -->
 </div>
 
-<!-- Güncelleme formu -->
-<div id="updateForm" class="update-form">
-    <h3>Update Category</h3>
-    <label for="updateName">Name:</label><br>
-    <input type="text" id="updateName"><br>
-    <label for="updateDescription">Description:</label><br>
-    <input type="text" id="updateDescription"><br><br>
-    <button onclick="submitUpdate()">Submit Update</button>
-    <button onclick="cancelUpdate()">Cancel</button>
-</div>
-
-<!-- Yeni kategori oluşturma formu -->
-<div id="createForm" class="create-form">
-    <h3>Create Category</h3>
-    <label for="createName">Name:</label><br>
-    <input type="text" id="createName"><br>
-    <label for="createDescription">Description:</label><br>
-    <input type="text" id="createDescription"><br><br>
-    <button onclick="submitCreate()">Create</button>
-</div>
 
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+        window.location.href = 'login.html';
+    }
+
+    let timeoutId;
+
+    // Sayfa terk edilince 5 saniye sonra token'ı temizle ve login.html'e yönlendir
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            timeoutId = setTimeout(() => {
+                localStorage.removeItem('token');
+                window.location.href = 'login.html';
+            }, 50000000); // 5 saniye bekler
+        } else {
+            clearTimeout(timeoutId); // Sayfa geri geldiğinde zamanlayıcıyı iptal et
+        }
+    });
+
+    fetchCategories();
+});
+
 async function fetchCategories() {
     try {
-        const response = await axios.get('http://localhost:5050/categories');
-        
+        const token = localStorage.getItem('token');
+        const response = await axios.get('http://localhost:5050/categories', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
         const categories = response.data;
-        
         categories.forEach(category => {
-            // Her bir kategori için HTML içeriği oluştur
             let categoryHtml = `
                 <div id="category${category._id}" class="category-container">
                     <div class="category-item">
                         <span class="category-label">Category ID:</span> ${category._id}
                     </div>
                     <div class="category-item">
-                        <span class="category-label">Category Name:</span> ${category.name}
+                        <span class="category-label">Title:</span> ${category.title}
+                    </div>
+                    <div class="category-item">
+                        <span class="category-label">Price:</span> ${category.price}
                     </div>
                     <div class="category-item">
                         <span class="category-label">Description:</span> ${category.description}
                     </div>
+                    <div class="category-item">
+                        <span class="category-label">Categories:</span> ${category.categories}
+                    </div>
+                    <div class="category-item">
+                        <span class="category-label">Image URL:</span> ${category.img}
+                    </div>
                     <div class="category-buttons">
                         <button class="btn" onclick="deleteCategory('${category._id}')">Delete</button>
-                        <button class="btn" onclick="showUpdateForm('${category._id}', '${category.name}', '${category.description}')">Update</button>
+                        <button class="btn" onclick="showUpdateForm('${category._id}', '${category.title}', '${category.price}', '${category.description}', '${category.categories}', '${category.img}')">Update</button>
+                    </div>
+                    <div id="updateForm${category._id}" class="update-form" style="display: none;">
+                        <h3>Update Category</h3>
+                        <label for="updateTitle${category._id}">Title:</label><br>
+                        <input type="text" id="updateTitle${category._id}" value="${category.title}"><br>
+                        <label for="updatePrice${category._id}">Price:</label><br>
+                        <input type="text" id="updatePrice${category._id}" value="${category.price}"><br>
+                        <label for="updateDescription${category._id}">Description:</label><br>
+                        <input type="text" id="updateDescription${category._id}" value="${category.description}"><br>
+                        <label for="updateCategories${category._id}">Categories:</label><br>
+                        <input type="text" id="updateCategories${category._id}" value="${category.categories}"><br>
+                        <label for="updateImg${category._id}">Image URL:</label><br>
+                        <input type="text" id="updateImg${category._id}" value="${category.img}"><br><br>
+                        <button onclick="submitUpdate('${category._id}')">Submit Update</button>
+                        <button onclick="cancelUpdate('${category._id}')">Cancel</button>
                     </div>
                     <hr>
-                </div>
-            `;
-            
-            // categoriesContainer içine HTML'i ekleyin
-            document.getElementById('categoriesContainer').innerHTML += categoryHtml;
+                </div>`;
+            document.getElementById('categoriesContainer').insertAdjacentHTML('beforeend', categoryHtml);
         });
-        
     } catch (error) {
         console.error('Error fetching data:', error);
         document.getElementById('categoriesContainer').innerHTML = '<p>Error fetching data.</p>';
     }
 }
 
-// Sayfa yüklendiğinde kategorileri çek
-fetchCategories();
-
-// Kategori silme DELETE isteği yapma
 async function deleteCategory(categoryId) {
     try {
-        const response = await axios.delete(`http://localhost:5050/categories/${categoryId}`);
+        const token = localStorage.getItem('token');
+        const response = await axios.delete(`http://localhost:5050/categories/${categoryId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
         console.log('Category Deleted:', response.data);
-        // İsteğin sonucunu burada işleyebilirsiniz, örneğin kategori silindi mesajı gösterebilirsiniz.
-        // Silinen kategoriyi sayfadan kaldırma (isteğe bağlı)
         document.getElementById(`category${categoryId}`).remove();
     } catch (error) {
         console.error('Error deleting category:', error);
@@ -171,110 +225,89 @@ async function deleteCategory(categoryId) {
     }
 }
 
-// Güncelleme formunu göster
-function showUpdateForm(categoryId, categoryName, categoryDescription) {
-    // Formu görünür yap
-    document.getElementById('updateForm').style.display = 'block';
-    
-    // Form alanlarını doldur
-    document.getElementById('updateName').value = categoryName;
-    document.getElementById('updateDescription').value = categoryDescription;
-    
-    // Submit fonksiyonuna categoryId'yi set et
-    submitUpdate.categoryId = categoryId;
+function showUpdateForm(categoryId, title, price, description, categories, img) {
+    document.getElementById(`updateForm${categoryId}`).style.display = 'block';
+    document.getElementById(`updateTitle${categoryId}`).value = title;
+    document.getElementById(`updatePrice${categoryId}`).value = price;
+    document.getElementById(`updateDescription${categoryId}`).value = description;
+    document.getElementById(`updateCategories${categoryId}`).value = categories;
+    document.getElementById(`updateImg${categoryId}`).value = img;
 }
 
-// Güncelleme formunu kapat
-function cancelUpdate() {
-    document.getElementById('updateForm').style.display = 'none';
+function cancelUpdate(categoryId) {
+    document.getElementById(`updateForm${categoryId}`).style.display = 'none';
 }
 
-// Kategori güncelleme PUT (update) isteği yapma
-async function submitUpdate() {
+async function submitUpdate(categoryId) {
     try {
+        const token = localStorage.getItem('token');
         const updatedCategory = {
-            name: document.getElementById('updateName').value,
-            description: document.getElementById('updateDescription').value
+            title: document.getElementById(`updateTitle${categoryId}`).value,
+            price: document.getElementById(`updatePrice${categoryId}`).value,
+            description: document.getElementById(`updateDescription${categoryId}`).value,
+            categories: document.getElementById(`updateCategories${categoryId}`).value,
+            img: document.getElementById(`updateImg${categoryId}`).value
         };
-        
-        const categoryId = submitUpdate.categoryId;
-        const response = await axios.put(`http://localhost:5050/categories/${categoryId}`, updatedCategory);
+
+        const response = await axios.put(`http://localhost:5050/categories/${categoryId}`, updatedCategory, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
         console.log('Category Updated:', response.data);
-        
-        // İsteğin sonucunu burada işleyebilirsiniz, örneğin güncelleme işlemi başarılı mesajı gösterebilirsiniz.
-        
-        // Kategori bilgilerini güncelle (isteğe bağlı)
-        const updatedCategoryHtml = `
-            <div id="category${categoryId}" class="category-container">
-                <div class="category-item">
-                    <span class="category-label">Category ID:</span> ${categoryId}
-                </div>
-                <div class="category-item">
-                    <span class="category-label">Category Name:</span> ${updatedCategory.name}
-                </div>
-                <div class="category-item">
-                    <span class="category-label">Description:</span> ${updatedCategory.description}
-                </div>
-                <div class="category-buttons">
-                    <button class="btn" onclick="deleteCategory('${categoryId}')">Delete</button>
-                    <button class="btn" onclick="showUpdateForm('${categoryId}', '${updatedCategory.name}', '${updatedCategory.description}')">Update</button>
-                </div>
-                <hr>
-            </div>
-        `;
-        
-        const oldCategoryElement = document.getElementById(`category${categoryId}`);
-        oldCategoryElement.insertAdjacentHTML('afterend', updatedCategoryHtml);
-        oldCategoryElement.remove();
-        
-        // Güncelleme formunu kapat
-        cancelUpdate();
-        
+        location.reload(); // Sayfayı yeniden yükleyerek güncellenmiş kategorileri göster
     } catch (error) {
         console.error('Error updating category:', error);
         alert('Error updating category. Check console for details.');
     }
 }
 
-// Yeni kategori oluşturma POST isteği yapma
-async function submitCreate() {
+async function submitCreate(event) {
+    event.preventDefault();
+
+    // Collect form data
+    const title = document.getElementById('createTitle').value;
+    const price = document.getElementById('createPrice').value;
+    const description = document.getElementById('createDescription').value;
+    const categories = document.getElementById('createCategories').value;
+    const img = document.getElementById('createImg').value;
+
+    // Prepare the data to be sent to the server
+    const categoryData = {
+        title: title,
+        price: price,
+        description: description,
+        categories: categories,
+        img: img
+    };
+
+    // Get the token from localStorage
+    const token = localStorage.getItem('token');
+
+    // Send data to the server using fetch API
     try {
-        const newCategory = {
-            name: document.getElementById('createName').value,
-            description: document.getElementById('createDescription').value
-        };
-        
-        const response = await axios.post('http://localhost:5050/categories', newCategory);
-        console.log('New Category Created:', response.data);
-        
-        // İsteğin sonucunu burada işleyebilirsiniz, örneğin yeni kategori oluşturuldu mesajı gösterebilirsiniz.
-        
-        // Yeni kategori HTML'i oluştur ve ekranın en üstüne ekle
-        const createdCategoryHtml = `
-            <div id="category${response.data._id}" class="category-container">
-                <div class="category-item">
-                    <span class="category-label">Category ID:</span> ${response.data._id}
-                </div>
-                <div class="category-item">
-                    <span class="category-label">Category Name:</span> ${response.data.name}
-                </div>
-                <div class="category-item">
-                    <span class="category-label">Description:</span> ${response.data.description}
-                </div>
-                <div class="category-buttons">
-                    <button class="btn" onclick="deleteCategory('${response.data._id}')">Delete</button>
-                    <button class="btn" onclick="showUpdateForm('${response.data._id}', '${response.data.name}', '${response.data.description}')">Update</button>
-                </div>
-                <hr>
-            </div>
-        `;
-        
-        document.getElementById('categoriesContainer').insertAdjacentHTML('afterbegin', createdCategoryHtml);
-        
+        const response = await fetch('http://localhost:5050/categories', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` // Add the Authorization header
+            },
+            body: JSON.stringify(categoryData)
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            console.log('Category created:', result);
+            // Optionally, refresh the categories list or display a success message
+        } else {
+            console.error('Failed to create category:', await response.text());
+        }
     } catch (error) {
-        console.error('Error creating category:', error);
-        alert('Error creating category. Check console for details.');
+        console.error('Error:', error);
     }
+}
+
+function logout() {
+    localStorage.removeItem('token');
+    window.location.href = 'login.html';
 }
 </script>
 </body>

@@ -7,33 +7,38 @@
     <link rel="stylesheet" href="/styles/login.css">
 </head>
 <body>
-    <h2>Login</h2>
-    <form id="loginForm">
-        <label for="username">Username:</label><br>
-        <input type="text" id="username" name="username" required><br>
-        <label for="password">Password:</label><br>
-        <input type="password" id="password" name="password" required><br><br>
-        <button type="submit">Login</button>
-    </form>
+    <div class="container">
+        <h2>Login</h2>
+        <form id="loginForm">
+            <label for="email">Email:</label>
+            <input type="email" id="email" required><br>
+            <label for="password">Password:</label>
+            <input type="password" id="password" required><br>
+            <button type="submit">Login</button>
+        </form>
+        <p id="loginError" style="color: red;"></p>
+        <p>Don't have an account? <a href="/signup.html">Sign up here</a></p>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
+       document.getElementById('loginForm').addEventListener('submit', async function(event) {
+    event.preventDefault();
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
 
-            try {
-                const response = await axios.post('http://localhost:5050/login', { username, password });
-                alert(response.data.message);
-                if (response.data.token) {
-                    localStorage.setItem('token', response.data.token);
-                    window.location.href = 'index.html'; // admin sayfasına yönlendirin
-                }
-            } catch (error) {
-                alert(error.response.data.message);
-            }
-        });
+    try {
+        const response = await axios.post('http://localhost:5050/auth/login', { email, password });
+        console.log('Login successful:', response.data);
+        // Token'ı localStorage'a saklayın ve yönlendirin
+        localStorage.setItem('token', response.data.token);
+        window.location.href = 'index.html'; // veya başka bir yönlendirme
+    } catch (error) {
+        console.error('Login error:', error);
+        const errorMessage = error.response?.data?.message || 'Error during login. Please check your credentials and try again.';
+        document.getElementById('loginError').textContent = errorMessage;
+    }
+});
     </script>
 </body>
 </html>
